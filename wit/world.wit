@@ -1,0 +1,11 @@
+package embedded:platform;
+
+interface uart {
+    read-byte: func() -> u8;
+    write-byte: func(byte: u8);
+}
+
+world uart-echo {
+    import uart;
+    export run: func();
+}
