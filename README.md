@@ -38,7 +38,7 @@ This project demonstrates that WebAssembly is not just for browsers — it can r
 ## Architecture
 
 ```
-┌───────────────────────────────────────────────────┐
+┌───────────────────────────────────────────────────────┐
 │                 RP2350 (Pico 2)                       │
 │                                                       │
 │  ┌───────────────────────────────────────────────┐    │
@@ -54,8 +54,8 @@ This project demonstrates that WebAssembly is not just for browsers — it can r
 │  │  └────────┘  │                             │  │    │
 │  │              │  imports:                   │  │    │
 │  │              │    embedded:platform/uart   │  │    │
-│  │              │      read-byte() -> u8     │  │    │
-│  │              │      write-byte(byte: u8)  │  │    │
+│  │              │      read-byte() -> u8      │  │    │
+│  │              │      write-byte(byte: u8)   │  │    │
 │  │              │                             │  │    │
 │  │              │  exports:                   │  │    │
 │  │              │    run()                    │  │    │
@@ -296,17 +296,17 @@ The firmware boots in this sequence:
 
 ```
 WASM run()
-  → uart::read_byte()                     [WIT import: embedded:platform/uart]
-    → Host::read_byte(&mut self)           [trait impl on HostState]
-      → uart::read_byte()                 [uart.rs — HAL nb::block!(uart.read_raw())]
+  → uart::read_byte()                   [WIT import: embedded:platform/uart]
+    → Host::read_byte(&mut self)        [trait impl on HostState]
+      → uart::read_byte()               [uart.rs — HAL nb::block!(uart.read_raw())]
   ← returns byte as u8
 
-  → echo_char(byte)                        [WASM internal logic]
+  → echo_char(byte)                     [WASM internal logic]
     → match on backspace/CR/normal
 
-  → uart::write_byte(byte)                 [WIT import: embedded:platform/uart]
-    → Host::write_byte(&mut self, byte)    [trait impl on HostState]
-      → uart::write_byte(b)               [uart.rs — HAL uart.write_full_blocking()]
+  → uart::write_byte(byte)              [WIT import: embedded:platform/uart]
+    → Host::write_byte(&mut self, byte) [trait impl on HostState]
+      → uart::write_byte(b)             [uart.rs — HAL uart.write_full_blocking()]
 ```
 
 ### 5. The Build Pipeline (`build.rs`)
