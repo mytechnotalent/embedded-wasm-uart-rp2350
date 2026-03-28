@@ -5,7 +5,7 @@ This tutorial is a line-by-line, function-by-function guide through every Rust s
 The walkthrough follows this order:
 
 1. [WIT Interface Definition](#1-wit-interface-definition-witworldwit) — the contract between guest and host
-2. [Platform Glue](#2-platform-glue-srcplatformrs) — thread-local storage stubs for wasmtime
+2. [Platform Glue](#2-platform-glue-srcplatformrs) — thread-local storage stubs for Wasmtime
 3. [UART Driver](#3-uart-driver-srcuartrs) — serial initialization and I/O
 4. [Firmware Entry Point](#4-firmware-entry-point-srcmainrs) — hardware init, WASM runtime, panic handler
 5. [Build Script](#5-build-script-buildrs) — AOT compilation pipeline
@@ -47,7 +47,7 @@ A **world** is a complete contract. The `uart-echo` world says: "I need `uart` f
 
 ## 2. Platform Glue (`src/platform.rs`)
 
-wasmtime was originally built for desktop operating systems that provide thread-local storage (TLS) through the OS. On a bare-metal microcontroller, there is no OS, so we must provide TLS ourselves. This file is the simplest in the project — two functions and one static variable.
+Wasmtime was originally built for desktop operating systems that provide thread-local storage (TLS) through the OS. On a bare-metal microcontroller, there is no OS, so we must provide TLS ourselves. This file is the simplest in the project — two functions and one static variable.
 
 ### Imports
 
@@ -64,7 +64,7 @@ use core::sync::atomic::{AtomicPtr, Ordering};
 static TLS_VALUE: AtomicPtr<u8> = AtomicPtr::new(ptr::null_mut());
 ```
 
-This is the entire TLS implementation. wasmtime's runtime stores a single pointer per thread. Since the RP2350 runs a single thread, one global atomic pointer is sufficient. It starts as null and gets set by wasmtime during component execution.
+This is the entire TLS implementation. Wasmtime's runtime stores a single pointer per thread. Since the RP2350 runs a single thread, one global atomic pointer is sufficient. It starts as null and gets set by Wasmtime during component execution.
 
 ### `wasmtime_tls_get`
 
@@ -75,7 +75,7 @@ pub extern "C" fn wasmtime_tls_get() -> *mut u8 {
 }
 ```
 
-wasmtime calls this symbol by name to retrieve the current thread's TLS pointer. The `#[unsafe(no_mangle)]` attribute (Rust 2024 syntax) prevents the compiler from mangling the function name, so wasmtime's linker can find it. `extern "C"` uses the C calling convention. `Ordering::Relaxed` is sufficient because there is only one thread — no ordering guarantees are needed relative to other threads.
+Wasmtime calls this symbol by name to retrieve the current thread's TLS pointer. The `#[unsafe(no_mangle)]` attribute (Rust 2024 syntax) prevents the compiler from mangling the function name, so Wasmtime's linker can find it. `extern "C"` uses the C calling convention. `Ordering::Relaxed` is sufficient because there is only one thread — no ordering guarantees are needed relative to other threads.
 
 ### `wasmtime_tls_set`
 
@@ -86,7 +86,7 @@ pub extern "C" fn wasmtime_tls_set(ptr: *mut u8) {
 }
 ```
 
-This is the setter counterpart. wasmtime calls it to store its runtime context pointer before executing WASM code, and clears it (stores null) when execution completes. Together, these two functions are the minimum platform glue that wasmtime requires to run on bare metal.
+This is the setter counterpart. Wasmtime calls it to store its runtime context pointer before executing WASM code, and clears it (stores null) when execution completes. Together, these two functions are the minimum platform glue that Wasmtime requires to run on bare metal.
 
 ---
 
@@ -355,7 +355,7 @@ use wasmtime::component::{Component, HasSelf};
 use wasmtime::{Config, Engine, Store};
 ```
 
-`PanicInfo` is the type passed to the panic handler. `LlffHeap` is a linked-list first-fit heap allocator designed for embedded systems. `hal` is the RP2350 hardware abstraction layer. The wasmtime imports bring in the Component Model's core types: `Component` (a precompiled WASM module), `Engine` (the execution environment), `Store` (per-instance state), and `HasSelf` (a marker type used for linker registration).
+`PanicInfo` is the type passed to the panic handler. `LlffHeap` is a linked-list first-fit heap allocator designed for embedded systems. `hal` is the RP2350 hardware abstraction layer. The Wasmtime imports bring in the Component Model's core types: `Component` (a precompiled WASM module), `Engine` (the execution environment), `Store` (per-instance state), and `HasSelf` (a marker type used for linker registration).
 
 ### WIT Bindings Generation
 
@@ -378,7 +378,7 @@ This macro reads the WIT file at compile time and generates Rust types and trait
 static HEAP: Heap = Heap::empty();
 ```
 
-Declares the heap allocator as a global static. It starts empty and is initialized by `init_heap` with a 256 KiB memory region. wasmtime uses the heap extensively — for the `Store`, `Component` metadata, and WASM linear memory.
+Declares the heap allocator as a global static. It starts empty and is initialized by `init_heap` with a 256 KiB memory region. Wasmtime uses the heap extensively — for the `Store`, `Component` metadata, and WASM linear memory.
 
 ### Constants
 
@@ -388,7 +388,7 @@ const HEAP_SIZE: usize = 262_144;
 const WASM_BINARY: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/uart_echo.cwasm"));
 ```
 
-`XOSC_CRYSTAL_FREQ` is the external crystal frequency (12 MHz) used to configure the PLL. `HEAP_SIZE` is 256 KiB — half of the RP2350's 512 KiB RAM, leaving the other half for the stack and wasmtime's internal structures. `WASM_BINARY` embeds the precompiled Pulley bytecode directly into the firmware binary at compile time using `include_bytes!`. The `.cwasm` file is produced by `build.rs` and is named `uart_echo.cwasm` to distinguish it from the blinky component.
+`XOSC_CRYSTAL_FREQ` is the external crystal frequency (12 MHz) used to configure the PLL. `HEAP_SIZE` is 256 KiB — half of the RP2350's 512 KiB RAM, leaving the other half for the stack and Wasmtime's internal structures. `WASM_BINARY` embeds the precompiled Pulley bytecode directly into the firmware binary at compile time using `include_bytes!`. The `.cwasm` file is produced by `build.rs` and is named `uart_echo.cwasm` to distinguish it from the blinky component.
 
 ### Boot Metadata
 
@@ -406,7 +406,7 @@ The RP2350's boot ROM looks for metadata in a special `.start_block` section to 
 struct HostState;
 ```
 
-The host state is the Rust type that wasmtime's `Store` carries. The WIT host trait is implemented on this struct. It has no fields because all hardware access goes through the global UART static.
+The host state is the Rust type that Wasmtime's `Store` carries. The WIT host trait is implemented on this struct. It has no fields because all hardware access goes through the global UART static.
 
 ```rust
 impl embedded::platform::uart::Host for HostState {
@@ -420,7 +420,7 @@ impl embedded::platform::uart::Host for HostState {
 }
 ```
 
-These are the host-side implementations of the WIT `uart` interface. When the WASM guest calls `uart::read_byte()`, wasmtime routes it here, which delegates to the UART driver's `read_byte` function to block until a character arrives. When the guest calls `uart::write_byte(b)`, wasmtime routes it to `uart::write_byte`, which sends the byte over the serial line. The Pulley interpreter pauses during each host call and resumes when it returns.
+These are the host-side implementations of the WIT `uart` interface. When the WASM guest calls `uart::read_byte()`, Wasmtime routes it here, which delegates to the UART driver's `read_byte` function to block until a character arrives. When the guest calls `uart::write_byte(b)`, Wasmtime routes it to `uart::write_byte`, which sends the byte over the serial line. The Pulley interpreter pauses during each host call and resumes when it returns.
 
 ### Panic Handler
 
@@ -520,9 +520,9 @@ fn create_engine() -> Engine {
 }
 ```
 
-Creates the wasmtime execution engine. Every setting here is critical and must match the build-time engine in `build.rs` exactly:
+Creates the Wasmtime execution engine. Every setting here is critical and must match the build-time engine in `build.rs` exactly:
 
-- `target("pulley32")` — targets the Pulley 32-bit software interpreter instead of native code generation. Pulley is wasmtime's portable bytecode interpreter that runs on any architecture.
+- `target("pulley32")` — targets the Pulley 32-bit software interpreter instead of native code generation. Pulley is Wasmtime's portable bytecode interpreter that runs on any architecture.
 - `signals_based_traps(false)` — disables OS signal handlers for traps. There is no OS to send signals.
 - `memory_init_cow(false)` — disables copy-on-write memory initialization. There is no virtual memory system.
 - `memory_reservation(0)` — disables virtual memory reservation. The RP2350 has only physical memory.
@@ -539,7 +539,7 @@ fn create_component(engine: &Engine) -> Component {
 }
 ```
 
-Deserializes the precompiled Pulley bytecode that was embedded by `include_bytes!`. The `unsafe` is required because `Component::deserialize` trusts that the bytes are a valid wasmtime serialized component — this is guaranteed because our `build.rs` produced them.
+Deserializes the precompiled Pulley bytecode that was embedded by `include_bytes!`. The `unsafe` is required because `Component::deserialize` trusts that the bytes are a valid Wasmtime serialized component — this is guaranteed because our `build.rs` produced them.
 
 ### `build_linker`
 
@@ -555,7 +555,7 @@ fn build_linker(engine: &Engine) -> wasmtime::component::Linker<HostState> {
 }
 ```
 
-Creates a component linker and registers all WIT interface implementations. `UartEcho::add_to_linker` was generated by `bindgen!` and connects the `uart::Host` trait implementation on `HostState` to the linker. The `HasSelf<HostState>` type parameter is a phantom type used internally by wasmtime — the closure simply returns `state` unchanged.
+Creates a component linker and registers all WIT interface implementations. `UartEcho::add_to_linker` was generated by `bindgen!` and connects the `uart::Host` trait implementation on `HostState` to the linker. The `HasSelf<HostState>` type parameter is a phantom type used internally by Wasmtime — the closure simply returns `state` unchanged.
 
 ### `execute_wasm`
 
@@ -620,7 +620,7 @@ use wasmtime::{Config, Engine};
 use wit_component::ComponentEncoder;
 ```
 
-Unlike the firmware code, the build script uses the full standard library (`std`). It needs file I/O, process spawning, and the host-side wasmtime with Cranelift code generation.
+Unlike the firmware code, the build script uses the full standard library (`std`). It needs file I/O, process spawning, and the host-side Wasmtime with Cranelift code generation.
 
 ### `setup_output_dir`
 
@@ -685,7 +685,7 @@ fn create_pulley_engine() -> Engine {
 }
 ```
 
-Creates a wasmtime engine for AOT cross-compilation. Every setting **must be identical** to `create_engine` in `src/main.rs`. When wasmtime serializes a component, it embeds all configuration values in the `.cwasm` header. When the device deserializes it, it compares every value against the runtime engine. Any mismatch causes `Component::deserialize` to fail with a cryptic error.
+Creates a Wasmtime engine for AOT cross-compilation. Every setting **must be identical** to `create_engine` in `src/main.rs`. When Wasmtime serializes a component, it embeds all configuration values in the `.cwasm` header. When the device deserializes it, it compares every value against the runtime engine. Any mismatch causes `Component::deserialize` to fail with a cryptic error.
 
 ### `compile_wasm_to_pulley`
 
@@ -747,7 +747,7 @@ The build script entry point. The sequence is: set up the output directory, writ
 
 ## 6. WASM Guest Application (`wasm-app/src/lib.rs`)
 
-This is the WebAssembly component that runs **inside** the wasmtime runtime on the RP2350. It has no access to hardware — only to the WIT `uart` interface the host provides. Unlike the blinky guest (which just loops set-high/delay/set-low), the UART echo guest performs interactive I/O with terminal-aware character handling.
+This is the WebAssembly component that runs **inside** the Wasmtime runtime on the RP2350. It has no access to hardware — only to the WIT `uart` interface the host provides. Unlike the blinky guest (which just loops set-high/delay/set-low), the UART echo guest performs interactive I/O with terminal-aware character handling.
 
 ### Crate Attributes
 
@@ -809,7 +809,7 @@ impl Guest for UartEchoApp {
 }
 ```
 
-The `run` function is the entire application loop. It reads one byte from UART, passes it to `echo_char` for processing, and repeats forever. Each call to `read_byte` crosses the WASM boundary — the Pulley interpreter pauses, wasmtime dispatches the call to `HostState::read_byte`, which blocks in the UART driver until a character arrives, then returns control to the interpreter.
+The `run` function is the entire application loop. It reads one byte from UART, passes it to `echo_char` for processing, and repeats forever. Each call to `read_byte` crosses the WASM boundary — the Pulley interpreter pauses, Wasmtime dispatches the call to `HostState::read_byte`, which blocks in the UART driver until a character arrives, then returns control to the interpreter.
 
 ### `read_byte`
 
@@ -879,7 +879,7 @@ fn panic(_info: &PanicInfo) -> ! {
 }
 ```
 
-The WASM guest's panic handler. Unlike the firmware's panic handler, it cannot write to a UART — it has no direct hardware access. It simply enters an infinite loop using `spin_loop()` (a hint to the CPU to reduce power consumption while spinning). In practice, a panic in the WASM guest would cause wasmtime to trap, which would be caught by the firmware's panic handler.
+The WASM guest's panic handler. Unlike the firmware's panic handler, it cannot write to a UART — it has no direct hardware access. It simply enters an infinite loop using `spin_loop()` (a hint to the CPU to reduce power consumption while spinning). In practice, a panic in the WASM guest would cause Wasmtime to trap, which would be caught by the firmware's panic handler.
 
 ---
 
