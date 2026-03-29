@@ -400,7 +400,7 @@ pub static IMAGE_DEF: hal::block::ImageDef = hal::block::ImageDef::secure_exe();
 
 The RP2350's boot ROM looks for metadata in a special `.start_block` section to determine how to boot. The `secure_exe()` tells the boot ROM this is a secure ARM executable. The `#[used]` attribute prevents the linker from stripping this symbol even though nothing references it in code. `#[unsafe(link_section)]` is the Rust 2024 syntax for placing data in a specific linker section.
 
-### Host State and WIT Implementation
+### Host State and WIT Implementations
 
 ```rust
 struct HostState;
