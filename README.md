@@ -1,9 +1,9 @@
-# Embedded WASM UART Echo
+# Embedded Wasm UART Echo
 ## WebAssembly UART Echo on RP2350 Pico 2
 
 > Part of the [embedded-wasm](https://github.com/mytechnotalent/embedded-wasm) collection — a set of repos that runs a WebAssembly Component Model runtime (Wasmtime + Pulley interpreter) directly on the RP2350 bare-metal with hardware capabilities exposed through WIT.
 
-A pure Embedded Rust project that runs a **WebAssembly Component Model runtime** (Wasmtime + Pulley interpreter) directly on the RP2350 (Raspberry Pi Pico 2) bare-metal. A WASM component is AOT-compiled to Pulley bytecode on the host and executed on the device to echo UART characters through typed WIT interfaces (`embedded:platform/uart`) — no operating system and no standard library.
+A pure Embedded Rust project that runs a **WebAssembly Component Model runtime** (Wasmtime + Pulley interpreter) directly on the RP2350 (Raspberry Pi Pico 2) bare-metal. A Wasm component is AOT-compiled to Pulley bytecode on the host and executed on the device to echo UART characters through typed WIT interfaces (`embedded:platform/uart`) — no operating system and no standard library.
 
 <br>
 
@@ -30,15 +30,15 @@ A pure Embedded Rust project that runs a **WebAssembly Component Model runtime**
 
 ## Overview
 
-This project demonstrates that WebAssembly is not just for browsers — it can run on a microcontroller with 512 KB of RAM. The firmware uses [Wasmtime](https://github.com/bytecodealliance/Wasmtime) with the **Pulley interpreter** (a portable, `no_std`-compatible WebAssembly runtime) and executes a precompiled WASM component that reads characters from UART0 and echoes them back with terminal-friendly backspace handling through typed WIT interfaces.
+This project demonstrates that WebAssembly is not just for browsers — it can run on a microcontroller with 512 KB of RAM. The firmware uses [Wasmtime](https://github.com/bytecodealliance/Wasmtime) with the **Pulley interpreter** (a portable, `no_std`-compatible WebAssembly runtime) and executes a precompiled Wasm component that reads characters from UART0 and echoes them back with terminal-friendly backspace handling through typed WIT interfaces.
 
 **Key properties:**
 
 - **Pure Rust** — zero C code, zero C bindings, zero FFI
 - **Component Model** — typed WIT interfaces (`embedded:platform/uart`), not raw `extern "C"` imports
 - **Minimal unsafe** — only unavoidable sites (heap init, boot metadata, component deserialize, panic handler UART)
-- **Tiny WASM component** — minimal footprint for the echo module
-- **AOT compilation** — WASM is compiled to Pulley bytecode on the host, no compilation on device
+- **Tiny Wasm component** — minimal footprint for the echo module
+- **AOT compilation** — Wasm is compiled to Pulley bytecode on the host, no compilation on device
 - **Industry-standard runtime** — Wasmtime is the reference WebAssembly implementation
 - **Terminal-friendly** — handles backspace/DEL, CR/LF for proper serial terminal interaction
 
@@ -85,22 +85,22 @@ embedded-wasm-uart/
 │   └── settings.json      # Rust-analyzer target configuration
 ├── wit/                   # WIT interface definitions (Component Model)
 │   └── world.wit          # uart-echo world: import uart, export run
-├── wasm-app/              # WASM UART echo component (compiled to .wasm)
+├── wasm-app/              # Wasm UART echo component (compiled to .wasm)
 │   ├── .cargo/
-│   │   └── config.toml    # WASM linker flags (minimal memory)
+│   │   └── config.toml    # Wasm linker flags (minimal memory)
 │   ├── Cargo.toml
 │   └── src/
 │       └── lib.rs         # Echo logic: wit-bindgen generated uart interface, exports run()
-├── wasm-tests/            # Integration tests for the WASM component
+├── wasm-tests/            # Integration tests for the Wasm component
 │   ├── Cargo.toml
-│   ├── build.rs           # Encodes core WASM as component via ComponentEncoder
+│   ├── build.rs           # Encodes core Wasm as component via ComponentEncoder
 │   └── tests/
 │       └── integration.rs # 9 tests: loading, imports, echo, backspace, CR/LF
 ├── src/
 │   ├── main.rs            # Firmware: hardware init, Wasmtime component runtime, WIT host traits
 │   ├── uart.rs            # UART0 driver (shared plug-and-play module)
 │   └── platform.rs        # Platform TLS glue for Wasmtime no_std
-├── build.rs               # Compiles WASM app, encodes as component, AOT-compiles to Pulley
+├── build.rs               # Compiles Wasm app, encodes as component, AOT-compiles to Pulley
 ├── Cargo.toml             # Firmware dependencies
 ├── rp2350.x               # RP2350 memory layout linker script
 ├── SKILLS.md              # Project conventions and lessons learned
@@ -113,13 +113,13 @@ embedded-wasm-uart/
 
 Defines the `embedded:platform` package with the `uart` interface and the `uart-echo` world. This is the contract between guest and host — the guest calls `uart.read-byte()` and `uart.write-byte(byte)` without knowing anything about the hardware. The host maps those calls to real UART registers.
 
-### `wasm-app/src/lib.rs` — WASM Guest Component
+### `wasm-app/src/lib.rs` — Wasm Guest Component
 
-The WASM component compiled to `wasm32-unknown-unknown`. Uses `wit_bindgen::generate!()` to generate typed bindings from the `uart-echo` WIT world. Implements the `Guest` trait with a `run()` function that reads characters in an infinite loop and echoes them back via the `embedded:platform/uart` interface. Helper functions handle backspace/DEL (BS+Space+BS) and CR/LF newline conversion. Uses `dlmalloc` as the global allocator for the canonical ABI's `cabi_realloc`.
+The Wasm component compiled to `wasm32-unknown-unknown`. Uses `wit_bindgen::generate!()` to generate typed bindings from the `uart-echo` WIT world. Implements the `Guest` trait with a `run()` function that reads characters in an infinite loop and echoes them back via the `embedded:platform/uart` interface. Helper functions handle backspace/DEL (BS+Space+BS) and CR/LF newline conversion. Uses `dlmalloc` as the global allocator for the canonical ABI's `cabi_realloc`.
 
 ### `src/main.rs` — Firmware Entry Point
 
-Orchestrates everything: initializes the heap (256 KiB), clocks, and hardware peripherals, then boots the Wasmtime Pulley engine. Uses `wasmtime::component::bindgen!()` to generate host-side types and implements `embedded::platform::uart::Host` on `HostState` to bridge WIT imports to the `uart` driver module. Deserializes the embedded `.cwasm` component bytecode via `Component::deserialize` and calls the WASM `run()` export via `UartEcho::instantiate()`. The panic handler uses `uart::panic_init()` and `uart::panic_write()` to output diagnostics over UART0 via raw register writes.
+Orchestrates everything: initializes the heap (256 KiB), clocks, and hardware peripherals, then boots the Wasmtime Pulley engine. Uses `wasmtime::component::bindgen!()` to generate host-side types and implements `embedded::platform::uart::Host` on `HostState` to bridge WIT imports to the `uart` driver module. Deserializes the embedded `.cwasm` component bytecode via `Component::deserialize` and calls the Wasm `run()` export via `UartEcho::instantiate()`. The panic handler uses `uart::panic_init()` and `uart::panic_write()` to output diagnostics over UART0 via raw register writes.
 
 ### `src/uart.rs` — UART0 Driver (Shared Module)
 
@@ -131,7 +131,7 @@ Implements `wasmtime_tls_get()` and `wasmtime_tls_set()` using a global `AtomicP
 
 ### `build.rs` — AOT Build Script
 
-Copies the linker script (`rp2350.x` → `memory.x`), spawns a child `cargo build` to compile `wasm-app/` to a core `.wasm` binary, encodes it as a WASM component via `ComponentEncoder` (using the `wit-bindgen` metadata embedded in the binary), then AOT-compiles the component to Pulley bytecode via Cranelift. Strips `CARGO_ENCODED_RUSTFLAGS` from the child build to prevent ARM linker flags from leaking into the WASM compilation.
+Copies the linker script (`rp2350.x` → `memory.x`), spawns a child `cargo build` to compile `wasm-app/` to a core `.wasm` binary, encodes it as a Wasm component via `ComponentEncoder` (using the `wit-bindgen` metadata embedded in the binary), then AOT-compiles the component to Pulley bytecode via Cranelift. Strips `CARGO_ENCODED_RUSTFLAGS` from the child build to prevent ARM linker flags from leaking into the Wasm compilation.
 
 ## Prerequisites
 
@@ -183,7 +183,7 @@ cargo build --release
 This single command does everything:
 
 1. `build.rs` compiles `wasm-app/` to `wasm32-unknown-unknown` → produces `wasm_app.wasm` (core module with `wit-bindgen` metadata)
-2. `build.rs` encodes the core module as a WASM component via `ComponentEncoder`
+2. `build.rs` encodes the core module as a Wasm component via `ComponentEncoder`
 3. `build.rs` AOT-compiles the component to Pulley bytecode via Cranelift → produces `uart_echo.cwasm`
 4. The firmware compiles for `thumbv8m.main-none-eabihf`, embedding the Pulley bytecode via `include_bytes!`
 5. The result is an ELF at `target/thumbv8m.main-none-eabihf/release/embedded-wasm-uart`
@@ -281,9 +281,9 @@ world uart-echo {
 
 The guest calls `uart.read-byte()` and `uart.write-byte(byte)` without knowing anything about the hardware. The host maps those calls to real UART registers.
 
-### 2. The WASM Guest (`wasm-app/src/lib.rs`)
+### 2. The Wasm Guest (`wasm-app/src/lib.rs`)
 
-The WASM component is a `#![no_std]` Rust library compiled to `wasm32-unknown-unknown`. It uses `wit-bindgen` to generate typed bindings from the `uart-echo` WIT world and implements the `Guest` trait:
+The Wasm component is a `#![no_std]` Rust library compiled to `wasm32-unknown-unknown`. It uses `wit-bindgen` to generate typed bindings from the `uart-echo` WIT world and implements the `Guest` trait:
 
 ```rust
 wit_bindgen::generate!({
@@ -318,7 +318,7 @@ The firmware boots in this sequence:
 2. **`init_hardware()`** — Clocks, SIO, GPIO, UART0:
    - `uart::init(gpio0, gpio1)` → configures UART0 at 115200 baud (takes only TX/RX pins)
    - `uart::store_global()` → stores UART in mutex
-3. **`run_wasm()`** — Boots the WASM Component Model runtime:
+3. **`run_wasm()`** — Boots the Wasm Component Model runtime:
    ```
    create_engine()    → Config::target("pulley32"), bare-metal settings
    create_component() → Component::deserialize(embedded .cwasm bytes)
@@ -330,13 +330,13 @@ The firmware boots in this sequence:
 ### 4. The Call Chain
 
 ```
-WASM run()
+Wasm run()
   → uart::read_byte()                   [WIT import: embedded:platform/uart]
     → Host::read_byte(&mut self)        [trait impl on HostState]
       → uart::read_byte()               [uart.rs — HAL nb::block!(uart.read_raw())]
   ← returns byte as u8
 
-  → echo_char(byte)                     [WASM internal logic]
+  → echo_char(byte)                     [Wasm internal logic]
     → match on backspace/CR/normal
 
   → uart::write_byte(byte)              [WIT import: embedded:platform/uart]
@@ -357,7 +357,7 @@ cargo build --release
        ├── 2. Spawn: cargo build --release --target wasm32-unknown-unknown
        │         └── wasm-app/ compiles → wasm_app.wasm (core module)
        │
-       ├── 3. ComponentEncoder encodes core module as WASM component
+       ├── 3. ComponentEncoder encodes core module as Wasm component
        │         └── Uses wit-bindgen metadata embedded in the binary
        │
        ├── 4. AOT-compile component to Pulley bytecode via Cranelift:
@@ -368,7 +368,7 @@ cargo build --release
                └── Links against memory.x for RP2350 memory layout
 ```
 
-Critical detail: `CARGO_ENCODED_RUSTFLAGS` (ARM flags like `--nmagic`, `-Tlink.x`) must be stripped from the child WASM build via `.env_remove("CARGO_ENCODED_RUSTFLAGS")`.
+Critical detail: `CARGO_ENCODED_RUSTFLAGS` (ARM flags like `--nmagic`, `-Tlink.x`) must be stripped from the child Wasm build via `.env_remove("CARGO_ENCODED_RUSTFLAGS")`.
 
 ### 6. Creating a New Project from This Template
 
@@ -412,13 +412,13 @@ world uart-echo {
 
 | Region             | Address      | Size            | Usage                                                 |
 | ------------------ | ------------ | --------------- | ----------------------------------------------------- |
-| Flash              | `0x10000000` | 2 MiB           | Firmware code + embedded WASM component               |
+| Flash              | `0x10000000` | 2 MiB           | Firmware code + embedded Wasm component               |
 | RAM (striped)      | `0x20000000` | 512 KiB         | Stack + heap + data                                   |
-| Heap (allocated)   | —            | 256 KiB         | Wasmtime engine, store, component, WASM linear memory |
-| WASM linear memory | —            | 64 KiB (1 page) | WASM component's addressable memory                   |
-| WASM stack         | —            | 4 KiB           | WASM call stack                                       |
+| Heap (allocated)   | —            | 256 KiB         | Wasmtime engine, store, component, Wasm linear memory |
+| Wasm linear memory | —            | 64 KiB (1 page) | Wasm component's addressable memory                   |
+| Wasm stack         | —            | 4 KiB           | Wasm call stack                                       |
 
-> **Important:** The default WASM linker allocates 1 MB of linear memory (16 pages). This exceeds the RP2350's total RAM. The `wasm-app/.cargo/config.toml` explicitly sets `--initial-memory=65536` (1 page) and `stack-size=4096`.
+> **Important:** The default Wasm linker allocates 1 MB of linear memory (16 pages). This exceeds the RP2350's total RAM. The `wasm-app/.cargo/config.toml` explicitly sets `--initial-memory=65536` (1 page) and `stack-size=4096`.
 
 ## Extending the Project
 
@@ -470,20 +470,20 @@ fn echo_char(b: u8) {
 }
 ```
 
-Rebuild and reflash — only the WASM component changes.
+Rebuild and reflash — only the Wasm component changes.
 
 ## Troubleshooting
 
 | Symptom                                         | Cause                                  | Fix                                                                              |
 | ----------------------------------------------- | -------------------------------------- | -------------------------------------------------------------------------------- |
-| No echo from UART                               | WASM linear memory too large for heap  | Ensure `wasm-app/.cargo/config.toml` has `--initial-memory=65536`                |
+| No echo from UART                               | Wasm linear memory too large for heap  | Ensure `wasm-app/.cargo/config.toml` has `--initial-memory=65536`                |
 | No echo from UART                               | Wiring wrong                           | GPIO0=TX→adapter RX, GPIO1=RX→adapter TX, GND→GND                                |
 | `Component::deserialize` panics                 | Config mismatch build vs device        | Both engines must have identical `Config` settings                               |
 | `Component::deserialize` panics                 | `default-features` mismatch            | Both `[dependencies]` and `[build-dependencies]` need `default-features = false` |
-| Build fails with `unknown argument: --nmagic`   | Parent rustflags leaking to WASM build | Ensure `build.rs` has `.env_remove("CARGO_ENCODED_RUSTFLAGS")`                   |
+| Build fails with `unknown argument: --nmagic`   | Parent rustflags leaking to Wasm build | Ensure `build.rs` has `.env_remove("CARGO_ENCODED_RUSTFLAGS")`                   |
 | Build fails with `extern blocks must be unsafe` | Rust 2024 edition                      | Use `unsafe extern { ... }` with `safe fn` declarations                          |
 | `picotool` can't find device                    | Not in bootloader mode                 | Hold BOOTSEL while plugging in USB                                               |
-| `cargo build` doesn't pick up WASM changes      | Cached build artifacts                 | Run `cargo clean && cargo build --release`                                       |
+| `cargo build` doesn't pick up Wasm changes      | Cached build artifacts                 | Run `cargo clean && cargo build --release`                                       |
 | ComponentEncoder fails                          | wit-bindgen metadata missing           | Ensure wasm-app uses `wit-bindgen` with `macros` + `realloc` features            |
 | Garbled characters in terminal                  | Baud rate mismatch                     | Ensure terminal is set to 115200 baud, 8N1                                       |
 

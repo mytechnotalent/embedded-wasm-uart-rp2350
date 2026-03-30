@@ -1,4 +1,4 @@
-# Tutorial: Embedded WASM UART Echo — A Complete Code Walkthrough
+# Tutorial: Embedded Wasm UART Echo — A Complete Code Walkthrough
 
 This tutorial is a line-by-line, function-by-function guide through every Rust source file in the **embedded-wasm-uart** project. By the end, you will understand how a WebAssembly component is compiled, deployed, and executed on an RP2350 microcontroller to echo UART characters — entirely in bare-metal Rust with no operating system.
 
@@ -7,15 +7,15 @@ The walkthrough follows this order:
 1. [WIT Interface Definition](#1-wit-interface-definition-witworldwit) — the contract between guest and host
 2. [Platform Glue](#2-platform-glue-srcplatformrs) — thread-local storage stubs for Wasmtime
 3. [UART Driver](#3-uart-driver-srcuartrs) — serial initialization and I/O
-4. [Firmware Entry Point](#4-firmware-entry-point-srcmainrs) — hardware init, WASM runtime, panic handler
+4. [Firmware Entry Point](#4-firmware-entry-point-srcmainrs) — hardware init, Wasm runtime, panic handler
 5. [Build Script](#5-build-script-buildrs) — AOT compilation pipeline
-6. [WASM Guest Application](#6-wasm-guest-application-wasm-appsrclibrs) — the UART echo component itself
+6. [Wasm Guest Application](#6-wasm-guest-application-wasm-appsrclibrs) — the UART echo component itself
 
 ---
 
 ## 1. WIT Interface Definition (`wit/world.wit`)
 
-Before any Rust code, the project defines a **WIT (WebAssembly Interface Type)** file. WIT is a language-neutral interface description that the WebAssembly Component Model uses to type-check function calls between a host (the firmware) and a guest (the WASM module).
+Before any Rust code, the project defines a **WIT (WebAssembly Interface Type)** file. WIT is a language-neutral interface description that the WebAssembly Component Model uses to type-check function calls between a host (the firmware) and a guest (the Wasm module).
 
 ```wit
 package embedded:platform;
@@ -41,7 +41,7 @@ world uart-echo {
 }
 ```
 
-A **world** is a complete contract. The `uart-echo` world says: "I need `uart` from the host, and I will provide a `run` function." The host instantiates the component, calls `run`, and the WASM code takes over — reading characters from UART and echoing them back through the host-provided `uart` interface.
+A **world** is a complete contract. The `uart-echo` world says: "I need `uart` from the host, and I will provide a `run` function." The host instantiates the component, calls `run`, and the Wasm code takes over — reading characters from UART and echoing them back through the host-provided `uart` interface.
 
 ---
 
@@ -86,13 +86,13 @@ pub extern "C" fn wasmtime_tls_set(ptr: *mut u8) {
 }
 ```
 
-This is the setter counterpart. Wasmtime calls it to store its runtime context pointer before executing WASM code, and clears it (stores null) when execution completes. Together, these two functions are the minimum platform glue that Wasmtime requires to run on bare metal.
+This is the setter counterpart. Wasmtime calls it to store its runtime context pointer before executing Wasm code, and clears it (stores null) when execution completes. Together, these two functions are the minimum platform glue that Wasmtime requires to run on bare metal.
 
 ---
 
 ## 3. UART Driver (`src/uart.rs`)
 
-The UART driver provides serial I/O over GPIO0 (TX) and GPIO1 (RX) at 115200 baud. In this project, UART is the primary interface — not just for diagnostics, but for the application itself. The WASM guest reads and writes characters through this module. It is designed as a **shared plug-and-play** driver — it can be dropped into any RP2350 project without modification.
+The UART driver provides serial I/O over GPIO0 (TX) and GPIO1 (RX) at 115200 baud. In this project, UART is the primary interface — not just for diagnostics, but for the application itself. The Wasm guest reads and writes characters through this module. It is designed as a **shared plug-and-play** driver — it can be dropped into any RP2350 project without modification.
 
 ### Module Header
 
@@ -235,7 +235,7 @@ pub fn read_byte() -> u8 {
 }
 ```
 
-This function blocks until a byte arrives on the UART RX line. The `block!` macro from the `nb` crate spins on the non-blocking `read_raw` call until it returns `Ok`. In this project, `read_byte` is the primary input mechanism — the WASM guest calls it through the WIT `uart` interface to receive characters from the serial terminal. Note it uses `borrow_mut` because `read_raw` requires a mutable reference to the UART peripheral (reading modifies the RX FIFO state).
+This function blocks until a byte arrives on the UART RX line. The `block!` macro from the `nb` crate spins on the non-blocking `read_raw` call until it returns `Ok`. In this project, `read_byte` is the primary input mechanism — the Wasm guest calls it through the WIT `uart` interface to receive characters from the serial terminal. Note it uses `borrow_mut` because `read_raw` requires a mutable reference to the UART peripheral (reading modifies the RX FIFO state).
 
 ### `write_byte`
 
@@ -249,7 +249,7 @@ pub fn write_byte(byte: u8) {
 }
 ```
 
-Writes a single byte to UART0. This is the echo path — the WASM guest reads a character with `read_byte`, then sends it back with `write_byte`. Unlike `read_byte`, writing only needs an immutable borrow because `write_full_blocking` does not modify the UART's internal state.
+Writes a single byte to UART0. This is the echo path — the Wasm guest reads a character with `read_byte`, then sends it back with `write_byte`. Unlike `read_byte`, writing only needs an immutable borrow because `write_full_blocking` does not modify the UART's internal state.
 
 ### `panic_init`
 
@@ -321,7 +321,7 @@ Iterates over a byte slice, writing each byte with `\n` to `\r\n` conversion, us
 
 ## 4. Firmware Entry Point (`src/main.rs`)
 
-This is the largest file and the heart of the firmware. It initializes hardware, sets up the WASM runtime, and bridges the WIT `uart` interface to real hardware. Unlike the blinky project, there is no LED driver — this project is purely UART-driven.
+This is the largest file and the heart of the firmware. It initializes hardware, sets up the Wasm runtime, and bridges the WIT `uart` interface to real hardware. Unlike the blinky project, there is no LED driver — this project is purely UART-driven.
 
 ### Crate Attributes and Module Declarations
 
@@ -355,7 +355,7 @@ use wasmtime::component::{Component, HasSelf};
 use wasmtime::{Config, Engine, Store};
 ```
 
-`PanicInfo` is the type passed to the panic handler. `LlffHeap` is a linked-list first-fit heap allocator designed for embedded systems. The `hal` is the RP2350 hardware abstraction layer. The Wasmtime imports bring in the Component Model's core types: `Component` (a precompiled WASM module), `Engine` (the execution environment), `Store` (per-instance state), and `HasSelf` (a marker type used for linker registration).
+`PanicInfo` is the type passed to the panic handler. `LlffHeap` is a linked-list first-fit heap allocator designed for embedded systems. The `hal` is the RP2350 hardware abstraction layer. The Wasmtime imports bring in the Component Model's core types: `Component` (a precompiled Wasm module), `Engine` (the execution environment), `Store` (per-instance state), and `HasSelf` (a marker type used for linker registration).
 
 ### WIT Bindings Generation
 
@@ -378,7 +378,7 @@ This macro reads the WIT file at compile time and generates Rust types and trait
 static HEAP: Heap = Heap::empty();
 ```
 
-Declares the heap allocator as a global static. It starts empty and is initialized by `init_heap` with a 256 KiB memory region. Wasmtime uses the heap extensively — for the `Store`, `Component` metadata, and WASM linear memory.
+Declares the heap allocator as a global static. It starts empty and is initialized by `init_heap` with a 256 KiB memory region. Wasmtime uses the heap extensively — for the `Store`, `Component` metadata, and Wasm linear memory.
 
 ### Constants
 
@@ -420,7 +420,7 @@ impl embedded::platform::uart::Host for HostState {
 }
 ```
 
-These are the host-side implementations of the WIT `uart` interface. When the WASM guest calls `uart::read_byte()`, Wasmtime routes it here, which delegates to the UART driver's `read_byte` function to block until a character arrives. When the guest calls `uart::write_byte(b)`, Wasmtime routes it to `uart::write_byte`, which sends the byte over the serial line. The Pulley interpreter pauses during each host call and resumes when it returns.
+These are the host-side implementations of the WIT `uart` interface. When the Wasm guest calls `uart::read_byte()`, Wasmtime routes it here, which delegates to the UART driver's `read_byte` function to block until a character arrives. When the guest calls `uart::write_byte(b)`, Wasmtime routes it to `uart::write_byte`, which sends the byte over the serial line. The Pulley interpreter pauses during each host call and resumes when it returns.
 
 ### Panic Handler
 
@@ -529,7 +529,7 @@ Creates the Wasmtime execution engine. Every setting here is critical and must m
 - `memory_guard_size(0)` — disables guard pages. No virtual memory means no guard pages.
 - `memory_reservation_for_growth(0)` — no pre-reserved growth space.
 - `guard_before_linear_memory(false)` — no guard page before linear memory.
-- `max_wasm_stack(16384)` — limits the WASM stack to 16 KiB to fit in the constrained RAM.
+- `max_wasm_stack(16384)` — limits the Wasm stack to 16 KiB to fit in the constrained RAM.
 
 ### `create_component`
 
@@ -571,7 +571,7 @@ fn execute_wasm(
 }
 ```
 
-Instantiates the WASM component and calls the exported `run` function. `UartEcho::instantiate` creates a live instance of the component with all imports resolved. The `call_run` invokes the guest's `run` function, which enters the infinite echo loop. This function only returns if the WASM guest's `run` function returns — which in this project it never does.
+Instantiates the Wasm component and calls the exported `run` function. `UartEcho::instantiate` creates a live instance of the component with all imports resolved. The `call_run` invokes the guest's `run` function, which enters the infinite echo loop. This function only returns if the Wasm guest's `run` function returns — which in this project it never does.
 
 ### `run_wasm`
 
@@ -588,7 +588,7 @@ fn run_wasm() -> ! {
 }
 ```
 
-Orchestrates the WASM runtime startup. Creates the engine, deserializes the component, creates a store with the host state, builds the linker, and executes the WASM component. The trailing `loop` is a safety net — `execute_wasm` should never return because the guest's `run` function loops forever.
+Orchestrates the Wasm runtime startup. Creates the engine, deserializes the component, creates a store with the host state, builds the linker, and executes the Wasm component. The trailing `loop` is a safety net — `execute_wasm` should never return because the guest's `run` function loops forever.
 
 ### `main`
 
@@ -601,13 +601,13 @@ fn main() -> ! {
 }
 ```
 
-The firmware entry point. `#[hal::entry]` is the RP2350 HAL's entry point attribute (built on `cortex-m-rt`). It sets up the stack pointer and vector table, then calls this function. The boot sequence is: initialize the heap allocator, initialize all hardware peripherals, then start the WASM runtime. The `-> !` return type means this function never returns — the WASM guest's echo loop runs forever.
+The firmware entry point. `#[hal::entry]` is the RP2350 HAL's entry point attribute (built on `cortex-m-rt`). It sets up the stack pointer and vector table, then calls this function. The boot sequence is: initialize the heap allocator, initialize all hardware peripherals, then start the Wasm runtime. The `-> !` return type means this function never returns — the Wasm guest's echo loop runs forever.
 
 ---
 
 ## 5. Build Script (`build.rs`)
 
-The build script runs on the **host machine** (your development computer) during `cargo build`. It compiles the WASM guest application and AOT-compiles it to Pulley bytecode so the device does not need a WASM compiler.
+The build script runs on the **host machine** (your development computer) during `cargo build`. It compiles the Wasm guest application and AOT-compiles it to Pulley bytecode so the device does not need a Wasm compiler.
 
 ### Imports
 
@@ -655,18 +655,18 @@ fn compile_wasm_app() {
         .current_dir("wasm-app")
         .env_remove("CARGO_ENCODED_RUSTFLAGS")
         .status()
-        .expect("failed to build WASM app");
-    assert!(status.success(), "WASM app compilation failed");
+        .expect("failed to build Wasm app");
+    assert!(status.success(), "Wasm app compilation failed");
 }
 ```
 
-Spawns a child `cargo build` process to compile the WASM guest application. Key details:
+Spawns a child `cargo build` process to compile the Wasm guest application. Key details:
 
 - `--target wasm32-unknown-unknown` compiles to WebAssembly instead of the host architecture.
-- `.current_dir("wasm-app")` runs the build in the WASM sub-crate's directory.
-- `.env_remove("CARGO_ENCODED_RUSTFLAGS")` is critical — without this, the parent build's RUSTFLAGS (which contain ARM linker flags like `--nmagic` and `-Tlink.x`) leak into the child build and cause WASM linker errors.
+- `.current_dir("wasm-app")` runs the build in the Wasm sub-crate's directory.
+- `.env_remove("CARGO_ENCODED_RUSTFLAGS")` is critical — without this, the parent build's RUSTFLAGS (which contain ARM linker flags like `--nmagic` and `-Tlink.x`) leak into the child build and cause Wasm linker errors.
 
-The output is a core WASM module at `wasm-app/target/wasm32-unknown-unknown/release/wasm_app.wasm`.
+The output is a core Wasm module at `wasm-app/target/wasm32-unknown-unknown/release/wasm_app.wasm`.
 
 ### `create_pulley_engine`
 
@@ -692,7 +692,7 @@ Creates a Wasmtime engine for AOT cross-compilation. Every setting **must be ide
 ```rust
 fn compile_wasm_to_pulley(out: &Path) {
     let wasm_path = "wasm-app/target/wasm32-unknown-unknown/release/wasm_app.wasm";
-    let wasm_bytes = std::fs::read(wasm_path).expect("read WASM binary");
+    let wasm_bytes = std::fs::read(wasm_path).expect("read Wasm binary");
     let component_bytes = ComponentEncoder::default()
         .module(&wasm_bytes)
         .expect("set core module")
@@ -709,8 +709,8 @@ fn compile_wasm_to_pulley(out: &Path) {
 
 This is the core of the AOT compilation pipeline and the most important function in the build script. It performs three transformations:
 
-1. **Read the core WASM module** — the raw `.wasm` file produced by `cargo build` in the previous step.
-2. **Encode as a component** — `ComponentEncoder` reads the type metadata that `wit-bindgen` embedded in the core module and wraps it as a proper WASM component with typed imports and exports.
+1. **Read the core Wasm module** — the raw `.wasm` file produced by `cargo build` in the previous step.
+2. **Encode as a component** — `ComponentEncoder` reads the type metadata that `wit-bindgen` embedded in the core module and wraps it as a proper Wasm component with typed imports and exports.
 3. **AOT-compile to Pulley bytecode** — `precompile_component` runs Cranelift (a code generator) targeting the `pulley32` architecture, producing serialized bytecode that the Pulley interpreter can execute without any compilation on the device.
 
 The result is written to `uart_echo.cwasm`, which the firmware includes via `include_bytes!`.
@@ -727,7 +727,7 @@ fn print_rerun_triggers() {
 }
 ```
 
-Tells cargo which files should trigger a rebuild of the build script. Without these, cargo might cache the build script output and miss changes to the WASM guest code or WIT definitions.
+Tells cargo which files should trigger a rebuild of the build script. Without these, cargo might cache the build script output and miss changes to the Wasm guest code or WIT definitions.
 
 ### `main`
 
@@ -741,11 +741,11 @@ fn main() {
 }
 ```
 
-The build script entry point. The sequence is: set up the output directory, write the linker script, compile the WASM guest to a core module, transform and AOT-compile it to Pulley bytecode, and register file change triggers.
+The build script entry point. The sequence is: set up the output directory, write the linker script, compile the Wasm guest to a core module, transform and AOT-compile it to Pulley bytecode, and register file change triggers.
 
 ---
 
-## 6. WASM Guest Application (`wasm-app/src/lib.rs`)
+## 6. Wasm Guest Application (`wasm-app/src/lib.rs`)
 
 This is the WebAssembly component that runs **inside** the Wasmtime runtime on the RP2350. It has no access to hardware — only to the WIT `uart` interface the host provides. Unlike the blinky guest (which just loops set-high/delay/set-low), the UART echo guest performs interactive I/O with terminal-aware character handling.
 
@@ -755,7 +755,7 @@ This is the WebAssembly component that runs **inside** the Wasmtime runtime on t
 #![no_std]
 ```
 
-The WASM guest is `no_std` because the `wasm32-unknown-unknown` target has no operating system. It uses `core` for language primitives and `alloc` for the heap.
+The Wasm guest is `no_std` because the `wasm32-unknown-unknown` target has no operating system. It uses `core` for language primitives and `alloc` for the heap.
 
 ```rust
 extern crate alloc;
@@ -770,7 +770,7 @@ Enables heap allocation. The canonical ABI (the calling convention between host 
 static ALLOC: dlmalloc::GlobalDlmalloc = dlmalloc::GlobalDlmalloc;
 ```
 
-The `dlmalloc` is a port of Doug Lea's malloc to Rust. It is the only allocator that works with `wasm32-unknown-unknown` in `no_std` because it implements its own `sbrk` by growing the WASM linear memory. The `global` feature flag makes it a `#[global_allocator]`.
+The `dlmalloc` is a port of Doug Lea's malloc to Rust. It is the only allocator that works with `wasm32-unknown-unknown` in `no_std` because it implements its own `sbrk` by growing the Wasm linear memory. The `global` feature flag makes it a `#[global_allocator]`.
 
 ### Imports and Bindings
 
@@ -809,7 +809,7 @@ impl Guest for UartEchoApp {
 }
 ```
 
-The `run` function is the entire application loop. It reads one byte from UART, passes it to `echo_char` for processing, and repeats forever. Each call to `read_byte` crosses the WASM boundary — the Pulley interpreter pauses, Wasmtime dispatches the call to `HostState::read_byte`, which blocks in the UART driver until a character arrives, then returns control to the interpreter.
+The `run` function is the entire application loop. It reads one byte from UART, passes it to `echo_char` for processing, and repeats forever. Each call to `read_byte` crosses the Wasm boundary — the Pulley interpreter pauses, Wasmtime dispatches the call to `HostState::read_byte`, which blocks in the UART driver until a character arrives, then returns control to the interpreter.
 
 ### `read_byte`
 
@@ -829,7 +829,7 @@ fn write_byte(b: u8) {
 }
 ```
 
-A thin wrapper around the WIT-generated `uart::write_byte`. Sends a single byte across the WASM boundary to the host, which transmits it over UART0.
+A thin wrapper around the WIT-generated `uart::write_byte`. Sends a single byte across the Wasm boundary to the host, which transmits it over UART0.
 
 ### `handle_backspace`
 
@@ -879,7 +879,7 @@ fn panic(_info: &PanicInfo) -> ! {
 }
 ```
 
-The WASM guest's panic handler. Unlike the firmware's panic handler, it cannot write to a UART — it has no direct hardware access. It simply enters an infinite loop using `spin_loop()` (a hint to the CPU to reduce power consumption while spinning). In practice, a panic in the WASM guest would cause Wasmtime to trap, which would be caught by the firmware's panic handler.
+The Wasm guest's panic handler. Unlike the firmware's panic handler, it cannot write to a UART — it has no direct hardware access. It simply enters an infinite loop using `spin_loop()` (a hint to the CPU to reduce power consumption while spinning). In practice, a panic in the Wasm guest would cause Wasmtime to trap, which would be caught by the firmware's panic handler.
 
 ---
 
@@ -888,10 +888,10 @@ The WASM guest's panic handler. Unlike the firmware's panic handler, it cannot w
 1. The RP2350 powers on and the boot ROM reads `IMAGE_DEF` from `.start_block`
 2. `main()` calls `init_heap()` to set up the 256 KiB heap
 3. `init_hardware()` configures clocks (150 MHz) and UART0 (115200 baud on GPIO0/GPIO1)
-4. `run_wasm()` creates the Pulley engine and deserializes the precompiled WASM component
+4. `run_wasm()` creates the Pulley engine and deserializes the precompiled Wasm component
 5. `execute_wasm()` instantiates the component and calls `run`
 6. The guest's `run()` enters an infinite loop: `read_byte()` -> `echo_char()` -> back to `read_byte()`
-7. Each `read_byte` call crosses the WASM boundary into the host, which blocks until a character arrives on UART0
+7. Each `read_byte` call crosses the Wasm boundary into the host, which blocks until a character arrives on UART0
 8. Each `write_byte` call crosses the boundary and transmits a byte over UART0
 9. Special characters (backspace, newline) are handled by the guest's dispatch logic
 10. Characters echo. Forever.
@@ -907,7 +907,7 @@ The following references cover every major crate and specification used in this 
 - [cortex-m-rt](https://docs.rs/cortex-m-rt) — Cortex-M startup runtime (reset vector, memory init)
 - [embedded-hal](https://docs.rs/embedded-hal) — hardware abstraction traits (GPIO, UART, SPI, I2C)
 - [embedded-alloc](https://docs.rs/embedded-alloc) — heap allocator for `no_std` environments
-- [Cranelift](https://cranelift.dev) — compiler backend used for AOT WASM compilation ([API docs](https://docs.rs/cranelift-codegen))
+- [Cranelift](https://cranelift.dev) — compiler backend used for AOT Wasm compilation ([API docs](https://docs.rs/cranelift-codegen))
 - [Pulley](https://docs.rs/pulley-interpreter) — Wasmtime's portable interpreter bytecode format
 - [fugit](https://docs.rs/fugit) — type-safe time units for embedded (baud rates, clock frequencies)
 - [critical-section](https://docs.rs/critical-section) — cross-platform interrupt-safe mutual exclusion

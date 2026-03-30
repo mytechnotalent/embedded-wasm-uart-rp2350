@@ -2,7 +2,7 @@
 //!
 //! Copyright (c) 2026 Kevin Thomas
 //!
-//! # WASM UART Echo Component
+//! # Wasm UART Echo Component
 //!
 //! A minimal WebAssembly component that reads characters from UART and echoes
 //! them back, including backspace handling for terminal interaction. Uses
@@ -27,7 +27,7 @@ wit_bindgen::generate!({
     path: "../wit",
 });
 
-/// WASM guest component implementing the `uart-echo` world.
+/// Wasm guest component implementing the `uart-echo` world.
 struct UartEchoApp;
 
 // Register `UartEchoApp` as the component's exported implementation.
@@ -92,11 +92,11 @@ fn echo_char(b: u8) {
     }
 }
 
-/// Panic handler for the WASM environment that halts in an infinite loop.
+/// Panic handler for the Wasm environment that halts in an infinite loop.
 ///
 /// # Arguments
 ///
-/// * `_info` - Panic information (unused in the WASM environment).
+/// * `_info` - Panic information (unused in the Wasm environment).
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
     loop {

@@ -2,9 +2,9 @@
 //!
 //! Copyright (c) 2026 Kevin Thomas
 //!
-//! # Integration Tests for WASM UART Echo Component
+//! # Integration Tests for Wasm UART Echo Component
 //!
-//! Validates that the compiled WASM component loads correctly through the
+//! Validates that the compiled Wasm component loads correctly through the
 //! Component Model, implements the expected WIT interface
 //! (`embedded:platform/uart`), exports the `run` function, and echoes
 //! characters properly including backspace handling.
@@ -17,10 +17,10 @@ wasmtime::component::bindgen!({
     path: "../wit",
 });
 
-/// Compiled WASM UART echo component embedded at build time.
+/// Compiled Wasm UART echo component embedded at build time.
 const WASM_BINARY: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/uart_echo.wasm"));
 
-/// Represents a single host function call recorded during WASM execution.
+/// Represents a single host function call recorded during Wasm execution.
 #[derive(Debug, PartialEq)]
 enum HostCall {
     /// The `uart.read-byte` WIT function was called, returning the given byte.
@@ -61,7 +61,7 @@ impl embedded::platform::uart::Host for TestHostState {
     ///
     /// # Arguments
     ///
-    /// * `byte` - The byte written by the WASM guest.
+    /// * `byte` - The byte written by the Wasm guest.
     fn write_byte(&mut self, byte: u8) {
         self.calls.push(HostCall::WriteByte(byte));
     }
@@ -91,7 +91,7 @@ fn create_default_engine() -> Engine {
     Engine::default()
 }
 
-/// Compiles the embedded WASM binary into a wasmtime component.
+/// Compiles the embedded Wasm binary into a wasmtime component.
 ///
 /// # Arguments
 ///
@@ -99,13 +99,13 @@ fn create_default_engine() -> Engine {
 ///
 /// # Returns
 ///
-/// The compiled WASM `Component`.
+/// The compiled Wasm `Component`.
 ///
 /// # Panics
 ///
-/// Panics if the WASM binary is invalid.
+/// Panics if the Wasm binary is invalid.
 fn compile_component(engine: &Engine) -> Component {
-    Component::new(engine, WASM_BINARY).expect("valid WASM component")
+    Component::new(engine, WASM_BINARY).expect("valid Wasm component")
 }
 
 /// Builds a fully configured test linker with all WIT interfaces registered.
@@ -159,13 +159,13 @@ fn create_fueled_store(engine: &Engine, input: Vec<u8>, fuel: u64) -> Store<Test
     store
 }
 
-/// Runs the WASM `run` function until fuel is exhausted.
+/// Runs the Wasm `run` function until fuel is exhausted.
 ///
 /// # Arguments
 ///
 /// * `store` - The wasmtime store with fuel and host state.
 /// * `linker` - The component linker with WIT interfaces registered.
-/// * `component` - The compiled WASM component.
+/// * `component` - The compiled Wasm component.
 ///
 /// # Panics
 ///
@@ -199,11 +199,11 @@ fn get_writes(calls: &[HostCall]) -> Vec<u8> {
         .collect()
 }
 
-/// Verifies that the WASM component binary loads without error.
+/// Verifies that the Wasm component binary loads without error.
 ///
 /// # Panics
 ///
-/// Panics if the WASM component binary fails to compile.
+/// Panics if the Wasm component binary fails to compile.
 #[test]
 fn test_wasm_component_loads() {
     let engine = create_default_engine();

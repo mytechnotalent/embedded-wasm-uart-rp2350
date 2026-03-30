@@ -2,10 +2,10 @@
 //!
 //! Copyright (c) 2026 Kevin Thomas
 //!
-//! # WASM UART Echo Firmware for RP2350 (Pico 2)
+//! # Wasm UART Echo Firmware for RP2350 (Pico 2)
 //!
 //! This firmware runs a WebAssembly Component Model runtime on the RP2350
-//! bare-metal using wasmtime with the Pulley interpreter. A precompiled WASM
+//! bare-metal using wasmtime with the Pulley interpreter. A precompiled Wasm
 //! component reads characters from UART0 and echoes them back, including
 //! backspace handling, through typed WIT interfaces (`embedded:platform/uart`).
 
@@ -49,7 +49,7 @@ const XOSC_CRYSTAL_FREQ: u32 = 12_000_000;
 /// Heap size in bytes (256 KiB of the available 512 KiB RAM).
 const HEAP_SIZE: usize = 262_144;
 
-/// Precompiled Pulley bytecode for the WASM UART echo component, embedded at build time.
+/// Precompiled Pulley bytecode for the Wasm UART echo component, embedded at build time.
 const WASM_BINARY: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/uart_echo.cwasm"));
 
 /// RP2350 boot metadata placed in the `.start_block` section for the Boot ROM.
@@ -252,7 +252,7 @@ fn create_component(engine: &Engine) -> Component {
 ///
 /// # Arguments
 ///
-/// * `engine` - WASM engine that the linker is associated with.
+/// * `engine` - Wasm engine that the linker is associated with.
 ///
 /// # Returns
 ///
@@ -271,13 +271,13 @@ fn build_linker(engine: &Engine) -> wasmtime::component::Linker<HostState> {
     linker
 }
 
-/// Instantiates the WASM component and executes the exported `run` function.
+/// Instantiates the Wasm component and executes the exported `run` function.
 ///
 /// # Arguments
 ///
-/// * `store` - WASM store holding the host state.
+/// * `store` - Wasm store holding the host state.
 /// * `linker` - Component linker with WIT interfaces registered.
-/// * `component` - Precompiled WASM component to instantiate.
+/// * `component` - Precompiled Wasm component to instantiate.
 ///
 /// # Panics
 ///
@@ -292,7 +292,7 @@ fn execute_wasm(
     uart_echo.call_run(&mut *store).expect("execute run");
 }
 
-/// Loads and runs the WASM UART echo component.
+/// Loads and runs the Wasm UART echo component.
 fn run_wasm() -> ! {
     let engine = create_engine();
     let component = create_component(&engine);
@@ -304,7 +304,7 @@ fn run_wasm() -> ! {
     }
 }
 
-/// Firmware entry point that initializes hardware and runs the WASM UART echo.
+/// Firmware entry point that initializes hardware and runs the Wasm UART echo.
 #[hal::entry]
 fn main() -> ! {
     init_heap();
